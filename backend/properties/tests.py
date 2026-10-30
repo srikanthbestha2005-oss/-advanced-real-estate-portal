@@ -690,6 +690,179 @@ class PropertySearchTests(APITestCase):
             self.assertNotEqual(r['verification_status'], 'PENDING')
 
 
+class PropertyTypeKeywordSearchTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='pt_search_user', email='pt_search@test.com', password='password', role='USER'
+        )
+        self.url = reverse('property-list-create')
+
+        # Properties with distinctive titles containing no property-type words
+        # to guarantee the search is matched via property_type mapping
+        self.prop_house = Property.objects.create(
+            owner=self.user, title='Greenwood Residency', description='Spacious 3BHK home with garden',
+            property_type='HOUSE', listing_type='SALE', price=7500000, area=2200, bedrooms=3,
+            city='Hyderabad', state='TS', pincode='500001', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_apartment = Property.objects.create(
+            owner=self.user, title='Skyline Heights Unit 402', description='Modern living near tech park',
+            property_type='APARTMENT', listing_type='RENT', price=35000, area=1400, bedrooms=2,
+            city='Hyderabad', state='TS', pincode='500002', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_villa = Property.objects.create(
+            owner=self.user, title='Palm Meadows Estate 12', description='Private pool and lawn',
+            property_type='VILLA', listing_type='SALE', price=18000000, area=4500, bedrooms=4,
+            city='Hyderabad', state='TS', pincode='500003', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_shop = Property.objects.create(
+            owner=self.user, title='Corner Retail Unit 7', description='High footfall commercial market',
+            property_type='SHOP', listing_type='RENT', price=50000, area=600, bedrooms=0,
+            city='Hyderabad', state='TS', pincode='500004', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_plot = Property.objects.create(
+            owner=self.user, title='Sunny Acres Zone A', description='East facing corner site',
+            property_type='PLOT', listing_type='SALE', price=4000000, area=2400, bedrooms=0,
+            city='Hyderabad', state='TS', pincode='500005', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_comm_land = Property.objects.create(
+            owner=self.user, title='Highway Parcel 12', description='Industrial corridor frontage',
+            property_type='COMMERCIAL_LAND', listing_type='SALE', price=12000000, area=8000, bedrooms=0,
+            city='Hyderabad', state='TS', pincode='500006', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_flat = Property.objects.create(
+            owner=self.user, title='Metro Living 4B', description='Walk to metro station',
+            property_type='FLAT', listing_type='SALE', price=6000000, area=1100, bedrooms=2,
+            city='Bangalore', state='KA', pincode='560001', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_office = Property.objects.create(
+            owner=self.user, title='Cyber Tower Suite 300', description='Fully furnished IT workspace',
+            property_type='OFFICE', listing_type='RENT', price=120000, area=2500, bedrooms=0,
+            city='Bangalore', state='KA', pincode='560002', status='ACTIVE', verification_status='APPROVED'
+        )
+        self.prop_warehouse = Property.objects.create(
+            owner=self.user, title='Logistics Hub Bay 7', description='High ceiling storage facility',
+            property_type='WAREHOUSE', listing_type='RENT', price=90000, area=6000, bedrooms=0,
+            city='Bangalore', state='KA', pincode='560003', status='ACTIVE', verification_status='APPROVED'
+        )
+
+    def _get_results(self, params):
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.status_code, 200)
+        data = response.data
+        if isinstance(data, dict) and 'results' in data:
+            return data['results']
+        return data
+
+    def test_search_house_variations(self):
+        for term in ['house', 'House', 'HOUSE', '  house  ', 'houses']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Greenwood Residency', titles)
+
+    def test_search_apartment_variations(self):
+        for term in ['apartment', 'Apartment', 'APARTMENT', '  apartment  ', 'apartments']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Skyline Heights Unit 402', titles)
+
+    def test_search_villa_variations(self):
+        for term in ['villa', 'Villa', 'VILLA', '  villa  ', 'villas']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Palm Meadows Estate 12', titles)
+
+    def test_search_shop_variations(self):
+        for term in ['shop', 'Shop', 'SHOP', '  shop  ', 'shops']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Corner Retail Unit 7', titles)
+
+    def test_search_land_variations(self):
+        for term in ['land', 'Land', 'LAND', '  land  ', 'lands']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                # 'land' matches both PLOT (Residential Plot/Land) and COMMERCIAL_LAND (Commercial Land)
+                self.assertIn('Sunny Acres Zone A', titles)
+                self.assertIn('Highway Parcel 12', titles)
+
+    def test_search_plot_and_residential_plot(self):
+        for term in ['plot', 'Plot', '  plot  ', 'plots', 'residential plot', 'Residential Plot']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Sunny Acres Zone A', titles)
+
+    def test_search_commercial_land(self):
+        for term in ['commercial land', 'Commercial Land', 'COMMERCIAL_LAND']:
+            with self.subTest(term=term):
+                results = self._get_results({'search': term})
+                titles = [r['title'] for r in results]
+                self.assertIn('Highway Parcel 12', titles)
+
+    def test_search_other_property_types(self):
+        results = self._get_results({'search': 'flat'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Metro Living 4B', titles)
+
+        results = self._get_results({'search': 'office'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Cyber Tower Suite 300', titles)
+
+        results = self._get_results({'search': 'warehouse'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Logistics Hub Bay 7', titles)
+
+    def test_other_keyword_searches_continue_working(self):
+        results = self._get_results({'search': 'Sunny'})
+        titles = [r['title'] for r in results]
+        self.assertEqual(len(titles), 1)
+        self.assertEqual(titles[0], 'Sunny Acres Zone A')
+
+        results = self._get_results({'search': 'Logistics'})
+        titles = [r['title'] for r in results]
+        self.assertEqual(len(titles), 1)
+        self.assertEqual(titles[0], 'Logistics Hub Bay 7')
+
+    def test_property_type_search_combined_with_filters(self):
+        # 'land' search combined with city filter 'Hyderabad'
+        results = self._get_results({'search': 'land', 'city': 'Hyderabad'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Sunny Acres Zone A', titles)
+        self.assertIn('Highway Parcel 12', titles)
+
+        # 'house' search combined with listing_type 'SALE'
+        results = self._get_results({'search': 'house', 'listing_type': 'SALE'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Greenwood Residency', titles)
+
+        # 'house' search with city filter where no houses exist
+        results = self._get_results({'search': 'house', 'city': 'Bangalore'})
+        titles = [r['title'] for r in results]
+        self.assertEqual(len(titles), 0)
+
+        # 'apartment' search with min_price
+        results = self._get_results({'search': 'apartment', 'min_price': 30000})
+        titles = [r['title'] for r in results]
+        self.assertIn('Skyline Heights Unit 402', titles)
+
+    def test_multi_word_query_with_property_type(self):
+        results = self._get_results({'search': 'Hyderabad house'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Greenwood Residency', titles)
+        self.assertNotIn('Metro Living 4B', titles)
+
+        results = self._get_results({'search': 'Hyderabad land'})
+        titles = [r['title'] for r in results]
+        self.assertIn('Sunny Acres Zone A', titles)
+        self.assertIn('Highway Parcel 12', titles)
+        self.assertNotIn('Greenwood Residency', titles)
+
+
 class PropertyContactPhoneTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
@@ -2335,6 +2508,50 @@ class PropertyLocationAndMappingTests(APITestCase):
         results = res.data.get('results', [])
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['title'], 'Hyderabad Flat')
+
+    def test_filter_properties_by_state_telangana(self):
+        url = reverse('property-list-create') + '?state=Telangana'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['state'], 'Telangana')
+        self.assertEqual(results[0]['title'], 'Hyderabad Flat')
+
+    def test_filter_properties_by_state_andhra_pradesh(self):
+        url = reverse('property-list-create') + '?state=Andhra Pradesh'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['state'], 'Andhra Pradesh')
+        self.assertEqual(results[0]['title'], 'Vizag Beach Villa')
+
+    def test_filter_properties_no_state_filter_returns_both_states(self):
+        url = reverse('property-list-create')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', [])
+        states = {r['state'] for r in results}
+        self.assertIn('Telangana', states)
+        self.assertIn('Andhra Pradesh', states)
+
+    def test_filter_properties_by_state_and_district_ap(self):
+        url = reverse('property-list-create') + '?state=Andhra Pradesh&district=Visakhapatnam'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['title'], 'Vizag Beach Villa')
+
+    def test_filter_properties_by_mismatched_state_and_district(self):
+        url = reverse('property-list-create') + '?state=Telangana&district=Visakhapatnam'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        results = res.data.get('results', [])
+        self.assertEqual(len(results), 0)
+
+
 
 
 

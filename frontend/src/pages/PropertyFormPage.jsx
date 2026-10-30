@@ -758,7 +758,7 @@ const PropertyFormPage = () => {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  placeholder="e.g. Hyderabad, Vijayawada, etc."
+                  placeholder="Enter city name"
                   className={`w-full border rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 ${
                     fieldErrors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
                   }`}

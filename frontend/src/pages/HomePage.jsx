@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import PropertyCard from '../components/PropertyCard';
 import api from '../api';
+import { getDistricts } from '../utils/locationData';
 
 const HERO_SLIDES = [
   {
@@ -84,10 +85,17 @@ const HomePage = () => {
   const navigate = useNavigate();
 
   // Search form state
-  const [searchCity, setSearchCity] = useState('');
+  const [searchState, setSearchState] = useState('');
+  const [searchDistrict, setSearchDistrict] = useState('');
   const [searchPropertyType, setSearchPropertyType] = useState('');
   const [searchListingType, setSearchListingType] = useState('');
   const [searchMaxBudget, setSearchMaxBudget] = useState('');
+
+  const handleStateChange = (e) => {
+    const newState = e.target.value;
+    setSearchState(newState);
+    setSearchDistrict(''); // Reset previously selected district when state changes
+  };
 
   // Hero carousel state
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -180,7 +188,8 @@ const HomePage = () => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (searchCity.trim()) params.append('city', searchCity.trim());
+    if (searchState) params.append('state', searchState);
+    if (searchDistrict) params.append('district', searchDistrict);
     if (searchPropertyType) params.append('property_type', searchPropertyType);
     if (searchListingType) params.append('listing_type', searchListingType);
     if (searchMaxBudget) params.append('max_price', searchMaxBudget);
@@ -345,18 +354,37 @@ const HomePage = () => {
             </span>
           </div>
 
-          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                City / Location
+                STATE
               </label>
-              <input
-                type="text"
-                placeholder="e.g. Hyderabad, Pune"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 placeholder-gray-400 transition-colors"
-              />
+              <select
+                value={searchState}
+                onChange={handleStateChange}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white transition-colors"
+              >
+                <option value="">Select State</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Telangana">Telangana</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                DISTRICT
+              </label>
+              <select
+                value={searchDistrict}
+                onChange={(e) => setSearchDistrict(e.target.value)}
+                disabled={!searchState}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                <option value="">{searchState ? 'All Districts' : 'Select State First'}</option>
+                {searchState && getDistricts(searchState).map(dist => (
+                  <option key={dist} value={dist}>{dist}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -411,7 +439,7 @@ const HomePage = () => {
               />
             </div>
 
-            <div className="sm:col-span-2 lg:col-span-4 mt-2 flex justify-end">
+            <div className="sm:col-span-2 lg:col-span-5 mt-2 flex justify-end">
               <button
                 type="submit"
                 className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"

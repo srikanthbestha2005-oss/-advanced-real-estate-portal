@@ -29,7 +29,8 @@ const Navbar = () => {
           setUser({
             email: payload.email,
             role: payload.role,
-            isStaff: payload.is_staff
+            isStaff: payload.is_staff,
+            username: payload.username || payload.name || payload.first_name || (payload.email ? payload.email.split('@')[0] : '')
           });
         }
       } catch (e) {
@@ -61,17 +62,8 @@ const Navbar = () => {
     window.location.reload();
   };
 
-  const getRoleDisplay = () => {
-    if (!user) return { icon: '👤', label: 'User' };
-    switch (user.role) {
-      case 'ADMIN': return { icon: '🛡️', label: 'Admin' };
-      case 'AGENT': return { icon: '🏠', label: 'Agent' };
-      case 'USER':
-      default: return { icon: '👤', label: 'User' };
-    }
-  };
-
-  const roleData = getRoleDisplay();
+  const displayUsername = user?.username || user?.first_name || (user?.email ? user.email.split('@')[0] : '') || 'User';
+  const avatarLetter = (displayUsername.trim().charAt(0) || 'U').toUpperCase();
 
   const isCurrentPath = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
@@ -119,20 +111,19 @@ const Navbar = () => {
             {token && user ? (
               <div className="flex items-center space-x-4">
                 
-                {/* Profile / Admin Indicator Dropdown */}
+                {/* Profile Avatar & Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center space-x-2 px-3.5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-full text-sm font-semibold text-slate-700 bg-slate-50/90 hover:bg-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all cursor-pointer"
+                    className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200 flex items-center justify-center text-sm shadow-sm hover:bg-blue-100 hover:border-blue-300 transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 cursor-pointer"
                     aria-expanded={isDropdownOpen}
                     aria-haspopup="true"
-                    title={`Role: ${roleData.label}`}
+                    aria-label="User profile menu"
+                    title={displayUsername}
                   >
-                    <span className="text-base leading-none">{roleData.icon}</span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">{roleData.label}</span>
-                    <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <span className="text-sm font-bold text-blue-600 leading-none select-none">
+                      {avatarLetter}
+                    </span>
                   </button>
                   
                   {isDropdownOpen && (
@@ -143,13 +134,9 @@ const Navbar = () => {
                     >
                       <div className="px-4 py-3" role="none">
                         <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold" role="none">Signed in as</p>
-                        <p className="text-sm font-semibold text-gray-900 truncate mt-0.5" role="none">{user.email}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate mt-0.5" role="none">{user.email || displayUsername}</p>
                       </div>
                       <div className="py-1.5" role="none">
-                        <div className="px-4 py-2 text-xs font-semibold text-gray-600 flex items-center bg-gray-50/60" role="menuitem">
-                          <span className="mr-2 text-sm">{roleData.icon}</span>
-                          Role: <span className="ml-1 text-gray-900 font-bold">{roleData.label}</span>
-                        </div>
                         <Link
                           to="/my-properties"
                           onClick={() => setIsDropdownOpen(false)}

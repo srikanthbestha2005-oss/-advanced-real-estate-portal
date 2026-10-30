@@ -179,7 +179,7 @@ const PropertiesPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-              <input type="text" name="city" value={filters.city} onChange={handleFilterChange} placeholder="e.g. Hyderabad" className="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" />
+              <input type="text" name="city" value={filters.city} onChange={handleFilterChange} placeholder="Enter city name" className="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" />
             </div>
 
             <div>

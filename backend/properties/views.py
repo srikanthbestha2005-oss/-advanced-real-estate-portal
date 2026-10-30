@@ -8,7 +8,7 @@ from django.db import transaction
 
 from .models import Property, PropertyImage
 from .serializers import PropertySerializer, PropertyImageSerializer
-from .filters import PropertyFilter
+from .filters import PropertyFilter, PropertySearchFilter
 from .pagination import PropertyPagination
 
 
@@ -16,7 +16,7 @@ class PropertyListCreateView(generics.ListCreateAPIView):
     serializer_class = PropertySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = PropertyPagination
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, PropertySearchFilter, filters.OrderingFilter]
     filterset_class = PropertyFilter
     search_fields = ['title', 'description', 'city', 'district', 'locality', 'state', 'address']
     ordering_fields = ['price', 'area', 'created_at']
